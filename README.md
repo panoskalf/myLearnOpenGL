@@ -1,6 +1,6 @@
 # CMake C++ GLFW Development Workspace for Visual Studio Code
 
-This repository is a VS Code workspace template for a C++ application that uses the [GLFW source](https://github.com/glfw/glfw) as a git submodule and [CMake](https://cmake.org/) for building. The [window.c](https://github.com/glfw/glfw/blob/master/tests/window.c) demo application from the official GLFW source was used as a demo `main.cpp`.
+This repository is a VS Code workspace template for a C++ application that uses the [GLFW source](https://github.com/glfw/glfw) as a git submodule and [CMake](https://cmake.org/) for building. The demo application is the 3rd exercise from [this tutorial](https://learnopengl.com/Getting-started/Hello-Triangle) was used as a demo `main.cpp`.
 
 ## Motivation
 
@@ -35,6 +35,26 @@ I created this project because at the time I wanted some simple solution using C
 2. Install the [CMake Tools](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cmake-tools) extension.
 3. Configure the project by running the `CMake: Configure` command from the Command Palette (`Ctrl+Shift+P`).
 4. Build the project by running the `CMake: Build` command from the Command Palette.
+
+## Project Structure
+
+    your_project/
+    ├── CMakeLists.txt
+    ├── src/
+    │   ├── main.cpp
+    │   ├── glad.c
+    │   └── (other .cpp files)
+    ├── include/
+    │   ├── KHR/
+    │   │   └── khrplatform.h
+    │   ├── glad/
+    │   │   └── glad.h
+    │   └── (other .h files)
+    ├── external/
+    │   └── glfw/
+    │       ├── CMakeLists.txt
+    │       └── (other GLFW files)
+    └── build/ (generated build files)
 
 ## Notes
 
