@@ -17,6 +17,7 @@ void queryNrOfAttributes(void);
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 const bool DRAW_WIREFRAME = false;
+float mixValue = 0.2f;
 
 int main()
 {
@@ -44,10 +45,10 @@ int main()
 
     float vertices[] = {
     // positions          // colors           // texture coords
-     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   0.55f, 0.55f,   // top right
-     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   0.55, 0.45f,   // bottom right
-    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.45f, 0.45f,   // bottom left
-    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.45f, 0.55f    // top left
+     0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+     0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+    -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+    -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left
     };
     unsigned int indices[] = {  // note that we start from 0!
     0, 1, 3,   // first triangle
@@ -94,11 +95,10 @@ int main()
     glActiveTexture(GL_TEXTURE0); // activate before binding
     glBindTexture(GL_TEXTURE_2D, texture1);
     // set the texture wrapping/filtering options (on the currently bound texture object)
-    // s t r correspond to x y z
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     // load and generate the texture
     int width, height, nrChannels;
     // images usually have 0.0 at the top left corner, but OpenGL expects 0.0 at the bottom left corner
@@ -149,6 +149,7 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT);
 
         ourShader.use();
+        ourShader.setFloat("mixValue", mixValue);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
@@ -180,9 +181,39 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void processInput(GLFWwindow *window)
 {
+    static bool upPressed = false, downPressed = false;
     // close window when ESC is pressed
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
+    // add 0.1 on each press of the up arrow key
+    if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        if(!upPressed)
+        {
+            mixValue = mixValue > 1.4 ? mixValue : mixValue + 0.1f;
+            printf("mixValue: %f\n", mixValue);
+            upPressed = true;
+        }
+    }
+    else
+    {
+        upPressed = false;
+    }
+
+    if(glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        if(!downPressed)
+        {
+            mixValue = mixValue < -0.9 ? mixValue : mixValue - 0.1f;
+            printf("mixValue: %f\n", mixValue);
+            downPressed = true;
+        }
+    }
+    else
+    {
+        downPressed = false;
+    }
 }
 
 void queryNrOfAttributes()
