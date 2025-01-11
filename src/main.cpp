@@ -5,6 +5,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "stb_image.h"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 // my own libraries
 #include "Shader.h"
 
@@ -142,11 +145,30 @@ int main()
     glUniform1i(glGetUniformLocation(ourShader.ID, "texture1"), 0); // set it manually
     ourShader.setInt("texture2", 1); // or with shader class
 
+    // DEMO: rotate by 90 degrees around the z-axis and scale by 0.5 on all axes
+    {
+        glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
+        glm::mat4 trans = glm::mat4(1.0f);
+        trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+        trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+
+        vec = trans * vec;
+        // Define a small tolerance value
+        const float tolerance = 1e-6f;
+
+        // Output the result with tolerance check
+        std::cout << "Rotated vector: ("
+                << (std::abs(vec.x) < tolerance ? 0.0f : vec.x) << ", "
+                << (std::abs(vec.y) < tolerance ? 0.0f : vec.y) << ", "
+                << (std::abs(vec.z) < tolerance ? 0.0f : vec.z) << ")" << std::endl;
+    }
+
     while(!glfwWindowShouldClose(window))
     {
         processInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
+
 
         ourShader.use();
         ourShader.setFloat("mixValue", mixValue);
@@ -156,6 +178,25 @@ int main()
         glBindTexture(GL_TEXTURE_2D, texture2);
 
         glBindVertexArray(VAO);
+
+        // rotate and move to bottom right
+        glm::mat4 trans = glm::mat4(1.0f);
+        // order of operations should be maintained (including commented scale)
+        trans = glm::translate(trans, glm::vec3(0.5f, -0.5f, 0.0f));
+        // trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(0.0f, 0.0f, 1.0f));
+        // pass the transformation to our vertex shader in the "transform" uniform
+        unsigned int transformLoc = glGetUniformLocation(ourShader.ID, "transform");
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+        // dwaw the first container
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        // scale and move to top left
+        trans = glm::mat4(1.0f);
+        trans = glm::translate(trans, glm::vec3(-0.5f, 0.5f, 0.0f));
+        float scaleValue = sin(glfwGetTime());
+        trans = glm::scale(trans, glm::vec3(scaleValue, scaleValue, scaleValue));
+        glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+        // draw the second container
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
 
