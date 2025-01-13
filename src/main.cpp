@@ -8,7 +8,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 // my own libraries
-#include "Shader.h"
+#include "shader.h"
+#include "camera.h"
 
 void processInput(GLFWwindow *window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -24,20 +25,14 @@ const bool DRAW_WIREFRAME = false;
 float mixValue = 0.2f;
 
 
-glm::vec3 cameraPos   = glm::vec3(0.0f, 0.0f,  3.0f);
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
-glm::vec3 cameraUp    = glm::vec3(0.0f, 1.0f,  0.0f);
+Camera camera(glm::vec3(0.0f, 0.0f,  3.0f));
+
 
 float deltaTime = 0.0f;	// Time between current frame and last frame
 float lastFrame = 0.0f; // Time of last frame
 
 float lastX = 400, lastY = 300;
-// yaw 0.0 results in poining to x-axis (right)
-// but we want to point it to -z axis (front)
-// so rotate clockwise by 90 degrees
-float yaw = -90.0f;
-float pitch = 0.0f;
-float fov = 45.0f;
+
 
 int main()
 {
@@ -229,11 +224,11 @@ int main()
         ourShader.setFloat("mixValue", mixValue);
 
         // create and send transformations
-        glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+        glm::mat4 view = camera.getViewMatrix();
         ourShader.setMat4("view", view);
 
         // projection matrix - define field of view (FOV) angle, aspect ratio, near and far planes
-        glm::mat4 projection = glm::perspective(glm::radians(fov), (float)800.0 / (float)600.0 , 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)800.0 / (float)600.0 , 0.1f, 100.0f);
         // projection = glm::ortho(-5.0f, 5.0f, -4.0f, 6.0f, 0.1f, 20.0f);
         ourShader.setMat4("projection", projection);
 
@@ -280,15 +275,14 @@ void processInput(GLFWwindow *window)
     if(glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
-    const float cameraSpeed = 2.5f * deltaTime; // adjust accordingly
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos += cameraSpeed * cameraFront;
+        camera.processKeyboard(Camera::FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraPos -= cameraSpeed * cameraFront;
+        camera.processKeyboard(Camera::BACKWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        camera.processKeyboard(Camera::LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+        camera.processKeyboard(Camera::RIGHT, deltaTime);
 
     // add 0.1 on each press of the up arrow key
     if(glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
@@ -332,37 +326,17 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos)
     }
 
     float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
     lastX = xpos;
     lastY = ypos;
 
-    float sensitivity = 0.1f;
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
-
-    yaw   += xoffset;
-    pitch += yoffset;
-
-    if(pitch > 89.0f)
-        pitch = 89.0f;
-    if(pitch < -89.0f)
-        pitch = -89.0f;
-
-    glm::vec3 direction;
-    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    direction.y = sin(glm::radians(pitch));
-    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(direction);
+    camera.processMouseMovement(xoffset, yoffset);
 }
 
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-    fov -= (float)yoffset;
-    if (fov < 1.0f)
-        fov = 1.0f;
-    if (fov > 45.0f)
-        fov = 45.0f;
+    camera.processMouseScroll(yoffset);
 }
 
 void queryNrOfAttributes()
