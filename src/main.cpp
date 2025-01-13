@@ -68,51 +68,54 @@ int main()
     // build and compile our shader program
     Shader ourShader("../../shaders/shader.vs", "../../shaders/shader.fs");
 
-    // vertex data and attributes
-    float vertices[] = {
-    // positions          // texture coords
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+// Vertex data and attributes
+float vertices[] = {
+    // Positions          // Texture Coords
+    // Front face
+    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // 0: Bottom-left
+     0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // 1: Bottom-right
+     0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // 2: Top-right
+    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, // 3: Top-left
+    // Back face
+    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // 4: Bottom-left
+     0.5f, -0.5f, -0.5f,  1.0f, 0.0f, // 5: Bottom-right
+     0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // 6: Top-right
+    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // 7: Top-left
+    // Left face
+    -0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // 8: Bottom-right
+    -0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // 9: Top-right
+    // Right face
+     0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // 10: Bottom-left
+     0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // 11: Top-left
+    // Top face
+    -0.5f,  0.5f, -0.5f,  0.0f, 0.0f, // 12: Bottom-left
+     0.5f,  0.5f, -0.5f,  1.0f, 0.0f, // 13: Bottom-right
+    // Bottom face
+     0.5f, -0.5f,  0.5f,  1.0f, 1.0f, // 14: Top-right
+    -0.5f, -0.5f,  0.5f,  0.0f, 1.0f  // 15: Top-left
+};
 
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
+// Indices for drawing the cube using element array
+unsigned int indices[] = {
+    // Front face
+    0, 1, 2,
+    0, 2, 3,
+    // Back face
+    4, 5, 6,
+    4, 6, 7,
+    // Left face
+    4, 8, 9,
+    4, 9, 7,
+    // Right face
+    10, 1, 2,
+    10, 2, 11,
+    // Top face
+    12, 13, 2,
+    12, 2, 3,
+    // Bottom face
+    4, 5, 14,
+    4, 14, 15
+};
 
     // define cube position vectors
     glm::vec3 cubePositions[] = {
@@ -129,13 +132,17 @@ int main()
     };
 
     // create a vertex buffer objects (VBOs) and vertex array objects (VAOs)
-    unsigned int VAO, VBO;
+    unsigned int VAO, VBO, EBO;
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
@@ -245,7 +252,7 @@ int main()
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
             ourShader.setMat4("model", model);
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            glDrawElements(GL_TRIANGLES, 36, GL_UNSIGNED_INT, 0);
         }
         glBindVertexArray(0);
 
@@ -257,6 +264,7 @@ int main()
     // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &VAO);
     glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &EBO);
     glDeleteProgram(ourShader.ID);
 
     glfwTerminate();
