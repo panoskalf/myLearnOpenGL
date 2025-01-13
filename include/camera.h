@@ -15,7 +15,7 @@ public:
         RIGHT
     };
 
-    Camera(glm::vec3 position);
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 getViewMatrix();
     float getZoom();
     void processKeyboard(Camera_Movement direction, float deltaTime);
@@ -23,9 +23,14 @@ public:
     void processMouseScroll(float yoffset);
 
 private:
+    void updateCameraVectors(void);
+    glm::mat4 myLookAt(const glm::vec3& position, const glm::vec3& target, const glm::vec3& worldUp);
+
     glm::vec3 position_;
     glm::vec3 front_;
     glm::vec3 up_;
+    glm::vec3 right_;
+    glm::vec3 worldUp_;
     float fov_;
     float yaw_;
     float pitch_;
