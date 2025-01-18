@@ -10,6 +10,7 @@
 #include "shader.h"
 #include "camera.h"
 #include "crate.h"
+#include "pyramid.h"
 
 void processInput(GLFWwindow *window);
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -66,24 +67,29 @@ int main()
 
 
     // build and compile our shader program
-    Shader ourShader("../../shaders/shader.vs", "../../shaders/shader.fs");
-    Crate crate("../../images/container.jpg", "../../images/awesomeface.png", ourShader);
+    Shader crateShader("../../shaders/shader.vs", "../../shaders/shader.fs");
+    Crate crate("../../images/container.jpg", "../../images/awesomeface.png", crateShader);
+    Shader pyramidShader("../../shaders/shader-color.vs", "../../shaders/shader-color.fs");
+    Pyramid pyramid;
 
     // define cube position vectors
     glm::vec3 cubePositions[] = {
-    glm::vec3( 0.0f,  0.0f,  0.0f),
-    glm::vec3( 2.0f,  5.0f, -15.0f),
-    glm::vec3(-1.5f, -2.2f, -2.5f),
-    glm::vec3(-3.8f, -2.0f, -12.3f),
-    glm::vec3( 2.4f, -0.4f, -3.5f),
-    glm::vec3(-1.7f,  3.0f, -7.5f),
-    glm::vec3( 1.3f, -2.0f, -2.5f),
-    glm::vec3( 1.5f,  2.0f, -2.5f),
-    glm::vec3( 1.5f,  0.2f, -1.5f),
-    glm::vec3(-1.3f,  1.0f, -1.5f)
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3( 2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3( 1.3f, -2.0f, -2.5f),
+        glm::vec3( 1.5f,  2.0f, -2.5f),
+        glm::vec3( 1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
     };
 
-
+    // define position vectors for the pyramids
+    glm::vec3 pyramidPositions[] = {
+        glm::vec3( -1.0f,  0.25f,  0.0f),
+        glm::vec3(  1.0f,  0.25f,  0.0f),
+    };
 
     if (DRAW_WIREFRAME)
     {
@@ -102,20 +108,21 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // also clear the depth buffer
 
-        ourShader.use();
+        crateShader.use();
         // set the texture mix value for the crates
-        ourShader.setFloat("mixValue", mixValue);
+        crateShader.setFloat("mixValue", mixValue);
 
         // create and send transformations
         glm::mat4 view = camera.getViewMatrix();
-        ourShader.setMat4("view", view);
+        crateShader.setMat4("view", view);
 
         // projection matrix - define field of view (FOV) angle, aspect ratio, near and far planes
         glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)800.0 / (float)600.0 , 0.1f, 100.0f);
-        ourShader.setMat4("projection", projection);
+        crateShader.setMat4("projection", projection);
 
         // draw the crates
-        for(unsigned int i = 0; i < 10; i++)
+        const unsigned int nrCrates = sizeof(cubePositions) / sizeof(cubePositions[0]);
+        for(unsigned int i = 0; i < nrCrates; i++)
         {
             // Calculate the rotation angle
             float angle = 20.0f * i;
@@ -123,9 +130,31 @@ int main()
                 angle = glfwGetTime() * 25.0f;
 
             // Draw the crate with the given position and rotation angle
-            crate.draw(cubePositions[i], angle, ourShader);
+            crate.draw(cubePositions[i], angle, crateShader);
         }
-        glBindVertexArray(0);
+
+        pyramidShader.use();
+        pyramidShader.setMat4("view", view);
+        pyramidShader.setMat4("projection", projection);
+        // draw the pyramids
+        const unsigned int nrPyramids = sizeof(pyramidPositions) / sizeof(pyramidPositions[0]);
+        for(unsigned int i = 0; i < nrPyramids; i++)
+        {
+            // Calculate the rotation angle for the pyramid position around the world y-axis
+            float worldAngle = glfwGetTime() * 20.0f; // Adjust the speed as needed
+
+            // Create a rotation matrix around the y-axis
+            glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(worldAngle), glm::vec3(0.0f, 1.0f, 0.0f));
+
+            // Apply the rotation matrix to the pyramid position
+            glm::vec4 rotatedPosition = rotationMatrix * glm::vec4(pyramidPositions[i], 1.0f);
+
+            // rotate pyramid around the model y-axis with oposite directions each time
+            float angle = i % 2 == 0 ? 20.0f : -20.0f;
+            angle *= glfwGetTime();
+
+            pyramid.draw(rotatedPosition, angle, pyramidShader);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -133,7 +162,7 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
-    glDeleteProgram(ourShader.ID);
+    glDeleteProgram(crateShader.ID);
 
     glfwTerminate();
     return 0;
