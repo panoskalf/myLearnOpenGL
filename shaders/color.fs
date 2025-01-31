@@ -1,14 +1,15 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec3 NormalViewSpace;
-in vec3 FragPosViewSpace;
 in vec3 FragPosModelSpace;
 in vec3 NormalModelSpace;
 in vec3 LightPosViewSpace;
 
+in vec3 ambientLight1;
+in vec3 diffuseLight1;
+in vec3 specularLight1;
+
 uniform vec3 objectColor;
-uniform vec3 lightColor;
 uniform vec3 lightColor2;
 uniform vec3 lightPos2;
 uniform vec3 viewPos;
@@ -18,36 +19,29 @@ uniform float diffuseStrength;
 
 void main()
 {
-    // ambient
-    vec3 ambient = ambientStrength * lightColor * lightColor2;
+    // Use the passed ambient, diffuse, and specular components for light1
+    vec3 ambient = ambientLight1;
+    vec3 diffuse = diffuseLight1;
+    vec3 specular = specularLight1;
 
-    // diffuse first light (view space)
-    vec3 normView = normalize(NormalViewSpace);
-    vec3 lightDirView = normalize(LightPosViewSpace - FragPosViewSpace);
-    float diffView = max(dot(normView, lightDirView), 0.0);
-    vec3 diffuseView = diffuseStrength * diffView * lightColor;
-
-    // diffuse second light (model space)
+    // Calculate lighting for light2 (Phong shading)
     vec3 normModel = normalize(NormalModelSpace);
     vec3 lightDirModel = normalize(lightPos2 - FragPosModelSpace);
-    float diffModel = max(dot(normModel, lightDirModel), 0.0);
-    vec3 diffuseModel = diffuseStrength * diffModel * lightColor2;
-
-    // Combined diffuse
-    vec3 diffuseCombined = diffuseView + diffuseModel;
-
-    // specular first light (view space)
-    vec3 viewDirView = normalize(-FragPosViewSpace); // the viewer is always at (0,0,0) in view-space
-    vec3 reflectDirView = reflect(-lightDirView, normView);
-    float specView = pow(max(dot(viewDirView, reflectDirView), 0.0), 32.0); // Ensure both arguments are float
-    vec3 specularView = specularStrength * specView * lightColor;
-
-    // specular second light (model space)
     vec3 viewDirModel = normalize(viewPos - FragPosModelSpace);
     vec3 reflectDirModel = reflect(-lightDirModel, normModel);
-    float specModel = pow(max(dot(viewDirModel, reflectDirModel), 0.0), 32.0); // Ensure both arguments are float
-    vec3 specularModel = specularStrength * specModel * lightColor2;
 
-    vec3 result = (ambient + diffuseCombined + specularView + specularModel) * objectColor;
+    // Ambient for light2
+    vec3 ambient2 = ambientStrength * lightColor2;
+
+    // Diffuse for light2
+    float diffModel = max(dot(normModel, lightDirModel), 0.0);
+    vec3 diffuse2 = diffuseStrength * diffModel * lightColor2;
+
+    // Specular for light2
+    float specModel = pow(max(dot(viewDirModel, reflectDirModel), 0.0), 32.0);
+    vec3 specular2 = specularStrength * specModel * lightColor2;
+
+    // Combine results
+    vec3 result = (ambient + diffuse + specular + ambient2 + diffuse2 + specular2) * objectColor;
     FragColor = vec4(result, 1.0);
 }
