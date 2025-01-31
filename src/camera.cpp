@@ -1,11 +1,11 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "camera.h"
 
-Camera::Camera(glm::vec3 position, glm::vec3 up) :
+Camera::Camera(glm::vec3 position, glm::vec3 front) :
 position_(position),
-front_(glm::vec3(0.0f, 0.0f, -1.0f)),
-up_(up),
-worldUp_(up),
+front_(front),
+up_(glm::vec3(0.0f, 1.0f, 0.0f)),
+worldUp_(up_),
 fov_(45.0f),
 // yaw 0.0 results in poining to x-axis (right)
 // but we want to point it to -z axis (front)

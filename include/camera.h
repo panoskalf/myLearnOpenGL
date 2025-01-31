@@ -17,10 +17,11 @@ class Camera
 {
 public:
 
-    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f));
+    Camera(glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3 front = glm::vec3(0.0f, 0.0f, -1.0f));
     glm::mat4 getViewMatrix();
     float getZoom();
     glm::vec3 getPosition() { return position_; }
+    glm::vec3 getFront() { return front_;}
     void processKeyboard(Camera_Movement direction, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset);
     void processMouseScroll(float yoffset);

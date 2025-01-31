@@ -6,6 +6,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
 
 #include <shader.h>
 #include <camera.h>
@@ -16,23 +19,25 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow *window);
+void handleMouseCapture(GLFWwindow* window);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
+Camera camera(glm::vec3(3.5f, 1.5f, 3.5f), glm::vec3(-0.7f, -0.2f, -0.7f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+bool captureMouse = false;
 
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
 // lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+glm::vec3 lightPos(1.2f, 0.0f, 1.0f);
 
 int main()
 {
@@ -61,8 +66,17 @@ int main()
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
 
+    //Initialize ImGui
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
+
     // tell GLFW to capture our mouse
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    // glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -155,7 +169,12 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-
+    float amibentStrength = 0.1f;
+    float specularStrength = 0.5f;
+    float diffuseStrength = 1.0f;
+    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
+    ImVec4 clear_color = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -166,24 +185,59 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
+        // Get current vars to display
+        // ---------------------------
+        // update light position
+        lightPos.x = sin(glfwGetTime()) * 1.0f;
+        lightPos.z = cos(glfwGetTime()) * 1.0f;
+        lightPos.y = sin(glfwGetTime() / 3.0f) * 0.75;
+
+        glm::vec3 camPos = camera.getPosition();
+        glm::vec3 camFront = camera.getFront();
+        // Start the ImGui frame
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+
+        // Test ImGui
+        ImGui::Begin("Hello, world!");
+        ImGui::Text("Press ESC to exit");
+        ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
+        ImGui::Text("Camera Front: (%.2f, %.2f, %.2f)", camFront.x, camFront.y, camFront.z);
+        ImGui::Checkbox("Capture Mouse (press C)", &captureMouse);
+        ImGui::ColorEdit4("clear color", (float*)&clear_color);
+        ImGui::ColorEdit3("Light Color", (float*)&lightColor);
+        ImGui::ColorEdit3("Object Color", (float*)&objectColor);
+        ImGui::SliderFloat("Ambient Strength", &amibentStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Specular Strength", &specularStrength, 0.0f, 1.0f);
+        ImGui::Text("Light Position: (%.2f, %.2f, %.2f)", lightPos.x, lightPos.y, lightPos.z);
+        ImGui::End();
+
         // input
         // -----
         processInput(window);
 
+        // handle mouse capture
+        handleMouseCapture(window);
+
         // render
         // ------
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        ImGui::Render();
+        int display_w, display_h;
+        glfwGetFramebufferSize(window, &display_w, &display_h);
+        glViewport(0, 0, display_w, display_h);
+        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        // update light position
-        lightPos.x = sin(glfwGetTime()) * 2.0f;
-        lightPos.z = cos(glfwGetTime()) * 2.0f;
-        lightPos.y = sin(glfwGetTime() / 3.0f);
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
-        lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
-        lightingShader.setVec3("lightColor",  1.0f, 1.0f, 1.0f);
+        lightingShader.setFloat("ambientStrength", amibentStrength);
+        lightingShader.setFloat("diffuseStrength", diffuseStrength);
+        lightingShader.setFloat("specularStrength", specularStrength);
+        lightingShader.setVec3("objectColor", objectColor);
+        lightingShader.setVec3("lightColor",  lightColor);
         lightingShader.setVec3("lightPos", lightPos);
         lightingShader.setVec3("viewPos", camera.getPosition());
 
@@ -201,9 +255,9 @@ int main()
         glBindVertexArray(cubeVAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-
         // also draw the lamp object
         lightCubeShader.use();
+        lightCubeShader.setVec3("lightColor", lightColor);
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
         model = glm::mat4(1.0f);
@@ -227,6 +281,11 @@ int main()
     glDeleteVertexArrays(1, &lightCubeVAO);
     glDeleteBuffers(1, &VBO);
 
+    // Cleanup ImGui
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
     glfwTerminate();
@@ -237,6 +296,7 @@ int main()
 // ---------------------------------------------------------------------------------------------------------
 void processInput(GLFWwindow *window)
 {
+    static bool captureMouseKeyPressed = false;
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
@@ -248,6 +308,33 @@ void processInput(GLFWwindow *window)
         camera.processKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.processKeyboard(RIGHT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS)
+        captureMouseKeyPressed = true;
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_RELEASE && captureMouseKeyPressed)
+    {
+        captureMouse = !captureMouse;
+        captureMouseKeyPressed = false;
+    }
+}
+
+void handleMouseCapture(GLFWwindow* window)
+{
+    static bool lastCaptureMouseState = false;
+    if(captureMouse != lastCaptureMouseState)
+    {
+        if(captureMouse)
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            lastX = SCR_WIDTH / 2.0f;
+            lastY = SCR_HEIGHT / 2.0f;
+            firstMouse = true;
+        }
+        else
+        {
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+        }
+        lastCaptureMouseState = captureMouse;
+    }
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -264,6 +351,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 // -------------------------------------------------------
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 {
+    if(!captureMouse)
+        return;
+
     float xpos = static_cast<float>(xposIn);
     float ypos = static_cast<float>(yposIn);
 

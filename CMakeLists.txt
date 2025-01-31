@@ -29,6 +29,23 @@ add_subdirectory(external/glm)
 # Include GLM headers
 include_directories(external/glm)
 
+# Add ImGui
+include_directories(external/imgui)
+include_directories(external/imgui/backends)  # Include ImGui backends
+include_directories(external/glfw/include)    # Include GLFW headers for ImGui backend
+file(GLOB IMGUI_SOURCES
+    external/imgui/imgui.cpp
+    external/imgui/imgui_draw.cpp
+    external/imgui/imgui_tables.cpp
+    external/imgui/imgui_widgets.cpp
+    external/imgui/backends/imgui_impl_glfw.cpp
+    external/imgui/backends/imgui_impl_opengl3.cpp
+)
+add_library(imgui STATIC ${IMGUI_SOURCES})
+
+# Link ImGui library
+target_link_libraries(${PROJECT_NAME} PRIVATE imgui)
+
 # Specify the output directory for binaries
 set_target_properties(${PROJECT_NAME} PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin
