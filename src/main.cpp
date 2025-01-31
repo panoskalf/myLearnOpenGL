@@ -173,6 +173,8 @@ int main()
     float amibentStrength = 0.1f;
     float specularStrength = 0.5f;
     float diffuseStrength = 1.0f;
+    bool stopLights = false;
+    float lightTimeOffset = 0.0f;
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 lightColor2 = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
@@ -187,16 +189,19 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        // Get current vars to display
-        // ---------------------------
-        // update light position
-        lightPos.x = sin(glfwGetTime()) * 1.0f;
-        lightPos.z = cos(glfwGetTime()) * 1.0f;
-        lightPos.y = sin(glfwGetTime() / 3.0f) * 0.75;
+        if(!stopLights)
+        {
+            // update light position
+            lightPos.x = sin(lightTimeOffset) * 1.0f;
+            lightPos.z = cos(lightTimeOffset) * 1.0f;
+            lightPos.y = sin(lightTimeOffset / 3.0f) * 0.75;
 
-        lightPos2.x = cos(glfwGetTime()) * 1.0f;
-        lightPos2.y = sin(glfwGetTime()) * 1.0f;
-        lightPos2.z = sin(glfwGetTime() / 3.0f) * 0.75;
+            lightPos2.x = cos(lightTimeOffset) * 1.0f;
+            lightPos2.y = sin(lightTimeOffset) * 1.0f;
+            lightPos2.z = sin(lightTimeOffset / 3.0f) * 0.75;
+
+            lightTimeOffset += deltaTime;
+        }
 
         glm::vec3 camPos = camera.getPosition();
         glm::vec3 camFront = camera.getFront();
@@ -208,6 +213,10 @@ int main()
         // Test ImGui
         ImGui::Begin("Hello, world!");
         ImGui::Text("Press ESC to exit");
+        if(ImGui::Button("Stop lights"))
+        {
+            stopLights = !stopLights;
+        }
         ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
         ImGui::Text("Camera Front: (%.2f, %.2f, %.2f)", camFront.x, camFront.y, camFront.z);
         ImGui::Checkbox("Capture Mouse (press C)", &captureMouse);
