@@ -38,6 +38,7 @@ float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 0.0f, 1.0f);
+glm::vec3 lightPos2(0.0f, 1.2f, 1.0f);
 
 int main()
 {
@@ -173,6 +174,7 @@ int main()
     float specularStrength = 0.5f;
     float diffuseStrength = 1.0f;
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 lightColor2 = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
     ImVec4 clear_color = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
     // render loop
@@ -192,6 +194,10 @@ int main()
         lightPos.z = cos(glfwGetTime()) * 1.0f;
         lightPos.y = sin(glfwGetTime() / 3.0f) * 0.75;
 
+        lightPos2.x = cos(glfwGetTime()) * 1.0f;
+        lightPos2.y = sin(glfwGetTime()) * 1.0f;
+        lightPos2.z = sin(glfwGetTime() / 3.0f) * 0.75;
+
         glm::vec3 camPos = camera.getPosition();
         glm::vec3 camFront = camera.getFront();
         // Start the ImGui frame
@@ -207,11 +213,13 @@ int main()
         ImGui::Checkbox("Capture Mouse (press C)", &captureMouse);
         ImGui::ColorEdit4("clear color", (float*)&clear_color);
         ImGui::ColorEdit3("Light Color", (float*)&lightColor);
+        ImGui::ColorEdit3("Light Color2", (float*)&lightColor2);
         ImGui::ColorEdit3("Object Color", (float*)&objectColor);
         ImGui::SliderFloat("Ambient Strength", &amibentStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Specular Strength", &specularStrength, 0.0f, 1.0f);
         ImGui::Text("Light Position: (%.2f, %.2f, %.2f)", lightPos.x, lightPos.y, lightPos.z);
+        ImGui::Text("Light Position2: (%.2f, %.2f, %.2f)", lightPos2.x, lightPos2.y, lightPos2.z);
         ImGui::End();
 
         // input
@@ -239,6 +247,8 @@ int main()
         lightingShader.setVec3("objectColor", objectColor);
         lightingShader.setVec3("lightColor",  lightColor);
         lightingShader.setVec3("lightPos", lightPos);
+        lightingShader.setVec3("lightColor2",  lightColor2);
+        lightingShader.setVec3("lightPos2", lightPos2);
         lightingShader.setVec3("viewPos", camera.getPosition());
 
         // view/projection transformations
@@ -264,8 +274,17 @@ int main()
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
         lightCubeShader.setMat4("model", model);
-
         glBindVertexArray(lightCubeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // draw light 2
+        lightCubeShader.setVec3("lightColor", lightColor2);
+        lightCubeShader.setMat4("projection", projection);
+        lightCubeShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos2);
+        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        lightCubeShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
