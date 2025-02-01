@@ -38,7 +38,7 @@ float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 0.0f, 1.0f);
-glm::vec3 lightPos2(0.0f, 1.2f, 1.0f);
+// glm::vec3 lightPos2(0.0f, 1.2f, 1.0f);
 
 int main()
 {
@@ -170,13 +170,12 @@ int main()
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
     float amibentStrength = 0.1f;
     float specularStrength = 0.5f;
     float diffuseStrength = 1.0f;
-    bool stopLights = false;
+    bool stopLight = false;
     float lightTimeOffset = 0.0f;
-    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    glm::vec3 lightColor2 = glm::vec3(1.0f, 1.0f, 1.0f);
     glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
     ImVec4 clear_color = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
     // render loop
@@ -189,19 +188,19 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        if(!stopLights)
+        if(!stopLight)
         {
             // update light position
             lightPos.x = sin(lightTimeOffset) * 1.0f;
             lightPos.z = cos(lightTimeOffset) * 1.0f;
             lightPos.y = sin(lightTimeOffset / 3.0f) * 0.75;
 
-            lightPos2.x = cos(lightTimeOffset) * 1.0f;
-            lightPos2.y = sin(lightTimeOffset) * 1.0f;
-            lightPos2.z = sin(lightTimeOffset / 3.0f) * 0.75;
-
             lightTimeOffset += deltaTime;
         }
+
+        // lightColor.x = sin(glfwGetTime() * 2.0f);
+        // lightColor.y = sin(glfwGetTime() * 0.7f);
+        // lightColor.z = sin(glfwGetTime() * 1.3f);
 
         glm::vec3 camPos = camera.getPosition();
         glm::vec3 camFront = camera.getFront();
@@ -213,22 +212,17 @@ int main()
         // Test ImGui
         ImGui::Begin("Hello, world!");
         ImGui::Text("Press ESC to exit");
-        if(ImGui::Button("Stop lights"))
+        if(ImGui::Button("Stop light"))
         {
-            stopLights = !stopLights;
+            stopLight = !stopLight;
         }
         ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
         ImGui::Text("Camera Front: (%.2f, %.2f, %.2f)", camFront.x, camFront.y, camFront.z);
         ImGui::Checkbox("Capture Mouse (press C)", &captureMouse);
         ImGui::ColorEdit4("clear color", (float*)&clear_color);
         ImGui::ColorEdit3("Light Color", (float*)&lightColor);
-        ImGui::ColorEdit3("Light Color2", (float*)&lightColor2);
         ImGui::ColorEdit3("Object Color", (float*)&objectColor);
-        ImGui::SliderFloat("Ambient Strength", &amibentStrength, 0.0f, 1.0f);
-        ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0.0f, 1.0f);
-        ImGui::SliderFloat("Specular Strength", &specularStrength, 0.0f, 1.0f);
         ImGui::Text("Light Position: (%.2f, %.2f, %.2f)", lightPos.x, lightPos.y, lightPos.z);
-        ImGui::Text("Light Position2: (%.2f, %.2f, %.2f)", lightPos2.x, lightPos2.y, lightPos2.z);
         ImGui::End();
 
         // input
@@ -248,17 +242,23 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+        // glm::vec3 diffuseColor = lightColor   * glm::vec3(1.0f); // darken diffuse light a bit
+        // glm::vec3 ambientColor = diffuseColor * glm::vec3(1.0f); // low influence
+
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
-        lightingShader.setFloat("ambientStrength", amibentStrength);
-        lightingShader.setFloat("diffuseStrength", diffuseStrength);
-        lightingShader.setFloat("specularStrength", specularStrength);
-        lightingShader.setVec3("objectColor", objectColor);
-        lightingShader.setVec3("lightColor",  lightColor);
-        lightingShader.setVec3("lightPos", lightPos);
-        lightingShader.setVec3("lightColor2",  lightColor2);
-        lightingShader.setVec3("lightPos2", lightPos2);
-        lightingShader.setVec3("viewPos", camera.getPosition());
+        // set material properties
+        lightingShader.setVec3("material.ambient", 0.0f, 0.1f, 0.06f);
+        lightingShader.setVec3("material.diffuse", 0.0f, 0.50980392f, 0.50980392f);
+        lightingShader.setVec3("material.specular", 0.50196078f, 0.50196078f, 0.50196078f);
+        lightingShader.setFloat("material.shininess", 32.0f);
+        // set light properties
+        lightingShader.setVec3("light.ambient",  lightColor); // low influence
+        lightingShader.setVec3("light.diffuse",  lightColor); // darken diffuse light a bit
+        lightingShader.setVec3("light.specular", lightColor); // usually kept at full intensity
+        lightingShader.setVec3("light.position", lightPos);
+        // set camera position
+        lightingShader.setVec3("viewPos", camPos);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -284,16 +284,6 @@ int main()
         model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
         lightCubeShader.setMat4("model", model);
         glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        // draw light 2
-        lightCubeShader.setVec3("lightColor", lightColor2);
-        lightCubeShader.setMat4("projection", projection);
-        lightCubeShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos2);
-        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-        lightCubeShader.setMat4("model", model);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
