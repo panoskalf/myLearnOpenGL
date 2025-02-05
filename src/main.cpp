@@ -28,7 +28,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(3.5f, 1.5f, 3.5f), glm::vec3(-0.7f, -0.2f, -0.7f));
+Camera camera(glm::vec3(0.05f, 2.5f, 7.8f), glm::vec3(-0.1f, -0.2f, -0.98f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -37,10 +37,6 @@ bool captureMouse = false;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
-
-// lighting
-glm::vec3 lightPos(1.2f, 0.0f, 1.0f);
-// glm::vec3 lightPos2(0.0f, 1.2f, 1.0f);
 
 int main()
 {
@@ -148,7 +144,7 @@ int main()
      0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
     -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
     -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-};
+    };
 
     // first, configure the cube's VAO (and VBO)
     unsigned int VBO, cubeVAO;
@@ -170,31 +166,52 @@ int main()
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
 
-    // second, configure the light's VAO (VBO stays the same; the vertices are the same for the light object which is also a 3D cube)
-    unsigned int lightCubeVAO;
-    glGenVertexArrays(1, &lightCubeVAO);
-    glBindVertexArray(lightCubeVAO);
-
-    // we only need to bind to the VBO (to link it with glVertexAttribPointer), no need to fill it; the VBO's data already contains all we need (it's already bound, but we do it again for educational purposes)
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
 
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 lightDirection = glm::vec3(-0.2f, -1.0f, -0.3f);
+    glm::vec3 start = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 end = start + lightDirection * 2.0f;
     float ambientStrength = 0.2f;   // low influence
     float diffuseStrength = 0.5f;   // darken diffuse light a bit
     float specularStrength = 1.0f;  // usually kept at full intensity
-    float matrix = 0.0f;
-    bool stopLight = false;
     float lightTimeOffset = 0.0f;
-    glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
+
+    float lineVertices[] = {
+        start.x, start.y, start.z,
+        end.x, end.y, end.z
+    };
+
+    unsigned int lineVAO, lineVBO;
+    glGenVertexArrays(1, &lineVAO);
+    glGenBuffers(1, &lineVBO);
+
+    glBindVertexArray(lineVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    float matrix = 0.0f;
     ImVec4 clear_color = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
 
     lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
     lightingShader.setInt("material.specular", 1);
     lightingShader.setInt("material.emission", 2);
+
+    glm::vec3 cubePositions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3( 2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3( 1.3f, -2.0f, -2.5f),
+        glm::vec3( 1.5f,  2.0f, -2.5f),
+        glm::vec3( 1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
 
     // render loop
     // -----------
@@ -206,18 +223,20 @@ int main()
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        if(!stopLight)
-        {
-            // update light position
-            lightPos.x = sin(lightTimeOffset) * 1.0f;
-            lightPos.z = cos(lightTimeOffset) * 1.0f;
-            lightPos.y = sin(lightTimeOffset / 3.0f) * 0.75;
-
-            lightTimeOffset += deltaTime;
-        }
-
         glm::vec3 camPos = camera.getPosition();
         glm::vec3 camFront = camera.getFront();
+
+        // update light direction every frame
+        end = start + lightDirection * 2.0f;
+
+        float lineVertices[] = {
+            start.x, start.y, start.z,
+            end.x, end.y, end.z
+        };
+
+        glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(lineVertices), lineVertices);
+
         // Start the ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
@@ -226,10 +245,6 @@ int main()
         // Test ImGui
         ImGui::Begin("Hello, world!");
         ImGui::Text("Press ESC to exit");
-        if(ImGui::Button("Stop light"))
-        {
-            stopLight = !stopLight;
-        }
         ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
         ImGui::Text("Camera Front: (%.2f, %.2f, %.2f)", camFront.x, camFront.y, camFront.z);
         ImGui::Checkbox("Capture Mouse (press C)", &captureMouse);
@@ -239,7 +254,8 @@ int main()
         ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Specular Strength", &specularStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Enter the Matrix", &matrix, 0.0f, 1.0f);
-        ImGui::Text("Light Position: (%.2f, %.2f, %.2f)", lightPos.x, lightPos.y, lightPos.z);
+        ImGui::SliderFloat3("Light start", (float*)&start, -1.0f, 1.0f);
+        ImGui::SliderFloat3("Light Direction", (float*)&lightDirection, -1.0f, 1.0f);
         ImGui::End();
 
         // input
@@ -272,7 +288,7 @@ int main()
         lightingShader.setVec3("light.ambient",  glm::vec3(ambientStrength)  * lightColor);
         lightingShader.setVec3("light.diffuse",  glm::vec3(diffuseStrength)  * lightColor);
         lightingShader.setVec3("light.specular", glm::vec3(specularStrength) * lightColor);
-        lightingShader.setVec3("light.position", lightPos);
+        lightingShader.setVec3("light.direction", lightDirection);
         // set camera position
         lightingShader.setVec3("viewPos", camPos);
 
@@ -281,10 +297,6 @@ int main()
         glm::mat4 view = camera.getViewMatrix();
         lightingShader.setMat4("projection", projection);
         lightingShader.setMat4("view", view);
-
-        // world transformation
-        glm::mat4 model = glm::mat4(1.0f);
-        lightingShader.setMat4("model", model);
 
         // Bind diffuse map
         glActiveTexture(GL_TEXTURE0);
@@ -295,21 +307,31 @@ int main()
         // Bind emission map
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, emissionMap);
-        // render the cube
-        glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        // also draw the lamp object
+        // render the 10 cubes
+        glBindVertexArray(cubeVAO);
+        for(unsigned int i = 0; i < 10; i++)
+        {
+            // world transformation
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            float angle = 20.0f * i;
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            lightingShader.setMat4("model", model);
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
+        // Use a simple shader program for the line
         lightCubeShader.use();
-        lightCubeShader.setVec3("lightColor", lightColor);
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        lightCubeShader.setVec3("lightColor", lightColor);
+        glm::mat4 model = glm::mat4(1.0f);
         lightCubeShader.setMat4("model", model);
-        glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        glBindVertexArray(lineVAO);
+        glDrawArrays(GL_LINES, 0, 2);
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -321,7 +343,6 @@ int main()
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &lightCubeVAO);
     glDeleteBuffers(1, &VBO);
 
     // Cleanup ImGui

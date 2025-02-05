@@ -22,6 +22,8 @@ public:
     float getZoom();
     glm::vec3 getPosition() { return position_; }
     glm::vec3 getFront() { return front_;}
+    glm::vec3 getUp() { return up_; }
+    glm::vec3 getRight() { return right_; }
     void processKeyboard(Camera_Movement direction, float deltaTime);
     void processMouseMovement(float xoffset, float yoffset);
     void processMouseScroll(float yoffset);
