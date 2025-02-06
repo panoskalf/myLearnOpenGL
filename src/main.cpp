@@ -155,7 +155,6 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glBindVertexArray(cubeVAO);
-
     // position attribute
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -165,6 +164,17 @@ int main()
     // diffuseMap attribute
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
     glEnableVertexAttribArray(2);
+
+    // second, configure the light's VAO (VBO the same)
+    unsigned int lightCubeVAO;
+    glGenVertexArrays(1, &lightCubeVAO);
+    glBindVertexArray(lightCubeVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    // note that we update the lamp's position attribute's stride to reflect the updated buffer data
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
 
 
     struct Spotlight {
@@ -213,6 +223,10 @@ int main()
         glm::vec3( 0.0f,  0.0f, -3.0f)
     };
 
+    float fpsUpdateTime = 0.0f;
+    const float fpsInterval = 1.0f; // Update every 1 second
+    float averagedFPS = 0.0f;
+    int frameCount = 0;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -222,6 +236,14 @@ int main()
         float currentFrame = static_cast<float>(glfwGetTime());
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
+
+        fpsUpdateTime += deltaTime;
+        ++frameCount;
+        if(fpsUpdateTime >= fpsInterval) {
+            averagedFPS = (float)frameCount / fpsUpdateTime;
+            frameCount = 0;
+            fpsUpdateTime = 0.0f;
+        }
 
         glm::vec3 camPos = camera.getPosition();
         glm::vec3 camFront = camera.getFront();
@@ -235,8 +257,8 @@ int main()
         ImGui::NewFrame();
 
         // Test ImGui
-        ImGui::Begin("Hello, world!");
-        ImGui::Text("Press ESC to exit");
+        ImGui::Begin("LearnOpenGL");
+        ImGui::Text("Press ESC to exit - FPS: %.1f", averagedFPS);
         ImGui::Text("Camera Position: (%.2f, %.2f, %.2f)", camPos.x, camPos.y, camPos.z);
         ImGui::Text("Camera Front: (%.2f, %.2f, %.2f)", camFront.x, camFront.y, camFront.z);
         ImGui::Checkbox("Capture Mouse (press C)", &captureMouse);
@@ -270,9 +292,47 @@ int main()
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
         // set material properties
+        lightingShader.setFloat("time", currentFrame);
+        lightingShader.setVec3("viewPos", camPos);
         lightingShader.setFloat("material.shininess", 32.0f);
         lightingShader.setFloat("material.emissionIntensity", matrix);
-        lightingShader.setFloat("time", currentFrame);
+        // directional light
+        lightingShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
+        lightingShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
+        lightingShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
+        lightingShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+        // point light 1
+        lightingShader.setVec3("pointLights[0].position", pointLightPositions[0]);
+        lightingShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
+        lightingShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
+        lightingShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setFloat("pointLights[0].constant", 1.0f);
+        lightingShader.setFloat("pointLights[0].linear", 0.09f);
+        lightingShader.setFloat("pointLights[0].quadratic", 0.032f);
+        // point light 2
+        lightingShader.setVec3("pointLights[1].position", pointLightPositions[1]);
+        lightingShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
+        lightingShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
+        lightingShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setFloat("pointLights[1].constant", 1.0f);
+        lightingShader.setFloat("pointLights[1].linear", 0.09f);
+        lightingShader.setFloat("pointLights[1].quadratic", 0.032f);
+        // point light 3
+        lightingShader.setVec3("pointLights[2].position", pointLightPositions[2]);
+        lightingShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
+        lightingShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
+        lightingShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setFloat("pointLights[2].constant", 1.0f);
+        lightingShader.setFloat("pointLights[2].linear", 0.09f);
+        lightingShader.setFloat("pointLights[2].quadratic", 0.032f);
+        // point light 4
+        lightingShader.setVec3("pointLights[3].position", pointLightPositions[3]);
+        lightingShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
+        lightingShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
+        lightingShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setFloat("pointLights[3].constant", 1.0f);
+        lightingShader.setFloat("pointLights[3].linear", 0.09f);
+        lightingShader.setFloat("pointLights[3].quadratic", 0.032f);
         // set spotlight properties
         lightingShader.setVec3("spotLight.ambient",     glm::vec3(spotlight.ambientStrength)  * spotlight.color);
         lightingShader.setVec3("spotLight.diffuse",     glm::vec3(spotlight.diffuseStrength)  * spotlight.color);
@@ -284,8 +344,8 @@ int main()
         lightingShader.setFloat("spotLight.constant",   spotlight.constant);
         lightingShader.setFloat("spotLight.linear",     spotlight.linear);
         lightingShader.setFloat("spotLight.quadratic",  spotlight.quadratic);
+
         // set camera position
-        lightingShader.setVec3("viewPos", camPos);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -317,17 +377,22 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        // // also draw the lamp object
-        // lightCubeShader.use();
-        // lightCubeShader.setVec3("lightColor", lightColor);
-        // lightCubeShader.setMat4("projection", projection);
-        // lightCubeShader.setMat4("view", view);
-        // glm::mat4 model = glm::mat4(1.0f);
-        // model = glm::translate(model, lightPos);
-        // model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-        // lightCubeShader.setMat4("model", model);
-        // glBindVertexArray(lightCubeVAO);
-        // glDrawArrays(GL_TRIANGLES, 0, 36);
+        // also draw the lamp object(s)
+        lightCubeShader.use();
+        lightCubeShader.setMat4("projection", projection);
+        lightCubeShader.setMat4("view", view);
+
+        // we now draw as many light bulbs as we have point lights.
+        glBindVertexArray(lightCubeVAO);
+        for (unsigned int i = 0; i < 4; i++)
+        {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, pointLightPositions[i]);
+            model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
+            lightCubeShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+            lightCubeShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
