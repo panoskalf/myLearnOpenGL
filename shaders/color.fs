@@ -10,6 +10,9 @@ struct Material {
 
 struct Light {
     vec3 position;
+    vec3 direction;
+    float cutOff;
+    float outerCutOff;
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
@@ -36,6 +39,7 @@ void main()
 
     // ambient
     vec3 ambient = light.ambient * vec3(texture(material.diffuse, TexCoords));
+
 
     // diffuse
     vec3 norm = normalize(Normal);
@@ -69,6 +73,19 @@ void main()
         emission = material.emissionIntensity * texture(material.emission, TexCoords + vec2(0.0,time)).rgb;
     }
 
-    // combined output
-    color = vec4(ambient + diffuse + specular + emission, 1.0f);
+    // spotlight calculations
+    float theta = dot(lightDir, normalize(-light.direction));
+    // reduce spotlight intensity outside of spotlight cone (between cutOff and outerCutOff)
+    float epsilon = light.cutOff - light.outerCutOff;
+    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
+    diffuse *= intensity;
+    specular *= intensity;
+
+    if(theta > light.outerCutOff)
+    {
+        // do lighting calculations
+        color = vec4(ambient + diffuse + specular + emission, 1.0f);
+    }
+    else  // else, use ambient light so scene isn't completely dark outside the spotlight.
+    color = vec4(ambient + emission, 1.0);
 }

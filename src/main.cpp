@@ -182,6 +182,8 @@ int main()
     glEnableVertexAttribArray(0);
 
     glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    float lightCutOff = 12.5f;
+    float lightOuterCutOff = 17.5f;
     float ambientStrength = 0.2f;   // low influence
     float diffuseStrength = 0.5f;   // darken diffuse light a bit
     float specularStrength = 1.0f;  // usually kept at full intensity
@@ -248,11 +250,12 @@ int main()
         ImGui::Checkbox("Capture Mouse (press C)", &captureMouse);
         ImGui::ColorEdit4("clear color", (float*)&clear_color);
         ImGui::ColorEdit3("Light Color", (float*)&lightColor);
+        ImGui::SliderFloat("Light cut-off", &lightCutOff, 1.0f, 89.0f);
+        ImGui::SliderFloat("Light outer cut-off", &lightOuterCutOff, 1.0f, 89.0f);
         ImGui::SliderFloat("Ambient Strength", &ambientStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Specular Strength", &specularStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Enter the Matrix", &matrix, 0.0f, 1.0f);
-        ImGui::Text("Light Position: (%.2f, %.2f, %.2f)", lightPos.x, lightPos.y, lightPos.z);
         ImGui::End();
 
         // input
@@ -285,7 +288,10 @@ int main()
         lightingShader.setVec3("light.ambient",  glm::vec3(ambientStrength)  * lightColor);
         lightingShader.setVec3("light.diffuse",  glm::vec3(diffuseStrength)  * lightColor);
         lightingShader.setVec3("light.specular", glm::vec3(specularStrength) * lightColor);
-        lightingShader.setVec3("light.position", lightPos);
+        lightingShader.setVec3("light.position", camPos);
+        lightingShader.setVec3("light.direction", camFront);
+        lightingShader.setFloat("light.cutOff", glm::cos(glm::radians(lightCutOff)));
+        lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(lightOuterCutOff)));
         lightingShader.setFloat("light.constant", 1.0f);
         lightingShader.setFloat("light.linear", 0.09f);
         lightingShader.setFloat("light.quadratic", 0.032f);
@@ -322,17 +328,17 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        // also draw the lamp object
-        lightCubeShader.use();
-        lightCubeShader.setVec3("lightColor", lightColor);
-        lightCubeShader.setMat4("projection", projection);
-        lightCubeShader.setMat4("view", view);
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-        lightCubeShader.setMat4("model", model);
-        glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        // // also draw the lamp object
+        // lightCubeShader.use();
+        // lightCubeShader.setVec3("lightColor", lightColor);
+        // lightCubeShader.setMat4("projection", projection);
+        // lightCubeShader.setMat4("view", view);
+        // glm::mat4 model = glm::mat4(1.0f);
+        // model = glm::translate(model, lightPos);
+        // model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        // lightCubeShader.setMat4("model", model);
+        // glBindVertexArray(lightCubeVAO);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
