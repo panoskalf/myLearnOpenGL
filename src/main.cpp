@@ -167,30 +167,22 @@ int main()
     glEnableVertexAttribArray(2);
 
 
-    glm::vec3 lightColor = glm::vec3(1.0f, 1.0f, 1.0f);
-    glm::vec3 lightDirection = glm::vec3(-0.2f, -1.0f, -0.3f);
-    glm::vec3 start = glm::vec3(0.0f, 0.0f, 0.0f);
-    glm::vec3 end = start + lightDirection * 2.0f;
-    float ambientStrength = 0.2f;   // low influence
-    float diffuseStrength = 0.5f;   // darken diffuse light a bit
-    float specularStrength = 1.0f;  // usually kept at full intensity
-    float lightTimeOffset = 0.0f;
-
-    float lineVertices[] = {
-        start.x, start.y, start.z,
-        end.x, end.y, end.z
+    struct Spotlight {
+        glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);   // will be taken from the camera
+        glm::vec3 direction = glm::vec3(0.0f, -1.0f, 0.0f); // will be taken from the camera
+        float cutOff = 12.5f;
+        float outerCutOff = 17.5f;
+        float ambientStrength = 0.2f;   // low influence
+        float diffuseStrength = 0.5f;   // darken diffuse light a bit
+        float specularStrength = 1.0f;  // usually kept at full intensity
+        // for the attenuation
+        float constant = 1.0f;
+        float linear = 0.09f;
+        float quadratic = 0.032f;
+        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
     };
 
-    unsigned int lineVAO, lineVBO;
-    glGenVertexArrays(1, &lineVAO);
-    glGenBuffers(1, &lineVBO);
-
-    glBindVertexArray(lineVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(lineVertices), lineVertices, GL_DYNAMIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
+    Spotlight spotlight;
 
     float matrix = 0.0f;
     ImVec4 clear_color = ImVec4(0.1f, 0.1f, 0.1f, 1.0f);
@@ -213,6 +205,14 @@ int main()
         glm::vec3(-1.3f,  1.0f, -1.5f)
     };
 
+
+    glm::vec3 pointLightPositions[] = {
+        glm::vec3( 0.7f,  0.2f,  2.0f),
+        glm::vec3( 2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f,  2.0f, -12.0f),
+        glm::vec3( 0.0f,  0.0f, -3.0f)
+    };
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -225,17 +225,9 @@ int main()
 
         glm::vec3 camPos = camera.getPosition();
         glm::vec3 camFront = camera.getFront();
+        spotlight.position = camPos;
+        spotlight.direction = camFront;
 
-        // update light direction every frame
-        end = start + lightDirection * 2.0f;
-
-        float lineVertices[] = {
-            start.x, start.y, start.z,
-            end.x, end.y, end.z
-        };
-
-        glBindBuffer(GL_ARRAY_BUFFER, lineVBO);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(lineVertices), lineVertices);
 
         // Start the ImGui frame
         ImGui_ImplOpenGL3_NewFrame();
@@ -249,13 +241,13 @@ int main()
         ImGui::Text("Camera Front: (%.2f, %.2f, %.2f)", camFront.x, camFront.y, camFront.z);
         ImGui::Checkbox("Capture Mouse (press C)", &captureMouse);
         ImGui::ColorEdit4("clear color", (float*)&clear_color);
-        ImGui::ColorEdit3("Light Color", (float*)&lightColor);
-        ImGui::SliderFloat("Ambient Strength", &ambientStrength, 0.0f, 1.0f);
-        ImGui::SliderFloat("Diffuse Strength", &diffuseStrength, 0.0f, 1.0f);
-        ImGui::SliderFloat("Specular Strength", &specularStrength, 0.0f, 1.0f);
+        ImGui::ColorEdit3("Spotlight Color", (float*)&spotlight.color);
+        ImGui::SliderFloat("Spotlight cut-off", &spotlight.cutOff, 1.0f, 89.0f);
+        ImGui::SliderFloat("Spotlight outer cut-off", &spotlight.outerCutOff, 1.0f, 89.0f);
+        ImGui::SliderFloat("Spotlight Ambient", &spotlight.ambientStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Spotlight Diffuse", &spotlight.diffuseStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Spotlight Specular", &spotlight.specularStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Enter the Matrix", &matrix, 0.0f, 1.0f);
-        ImGui::SliderFloat3("Light start", (float*)&start, -1.0f, 1.0f);
-        ImGui::SliderFloat3("Light Direction", (float*)&lightDirection, -1.0f, 1.0f);
         ImGui::End();
 
         // input
@@ -275,20 +267,23 @@ int main()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-        // glm::vec3 diffuseColor = lightColor   * glm::vec3(1.0f); // darken diffuse light a bit
-        // glm::vec3 ambientColor = diffuseColor * glm::vec3(1.0f); // low influence
-
         // be sure to activate shader when setting uniforms/drawing objects
         lightingShader.use();
         // set material properties
         lightingShader.setFloat("material.shininess", 32.0f);
         lightingShader.setFloat("material.emissionIntensity", matrix);
         lightingShader.setFloat("time", currentFrame);
-        // set light properties
-        lightingShader.setVec3("light.ambient",  glm::vec3(ambientStrength)  * lightColor);
-        lightingShader.setVec3("light.diffuse",  glm::vec3(diffuseStrength)  * lightColor);
-        lightingShader.setVec3("light.specular", glm::vec3(specularStrength) * lightColor);
-        lightingShader.setVec3("light.direction", lightDirection);
+        // set spotlight properties
+        lightingShader.setVec3("spotLight.ambient",     glm::vec3(spotlight.ambientStrength)  * spotlight.color);
+        lightingShader.setVec3("spotLight.diffuse",     glm::vec3(spotlight.diffuseStrength)  * spotlight.color);
+        lightingShader.setVec3("spotLight.specular",    glm::vec3(spotlight.specularStrength) * spotlight.color);
+        lightingShader.setVec3("spotLight.position",    spotlight.position);
+        lightingShader.setVec3("spotLight.direction",   spotlight.direction);
+        lightingShader.setFloat("spotLight.cutOff",      glm::cos(glm::radians(spotlight.cutOff)));
+        lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(spotlight.outerCutOff)));
+        lightingShader.setFloat("spotLight.constant",   spotlight.constant);
+        lightingShader.setFloat("spotLight.linear",     spotlight.linear);
+        lightingShader.setFloat("spotLight.quadratic",  spotlight.quadratic);
         // set camera position
         lightingShader.setVec3("viewPos", camPos);
 
@@ -308,7 +303,7 @@ int main()
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, emissionMap);
 
-        // render the 10 cubes
+        // render the cubes
         glBindVertexArray(cubeVAO);
         for(unsigned int i = 0; i < 10; i++)
         {
@@ -322,16 +317,17 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
-        // Use a simple shader program for the line
-        lightCubeShader.use();
-        lightCubeShader.setMat4("projection", projection);
-        lightCubeShader.setMat4("view", view);
-        lightCubeShader.setVec3("lightColor", lightColor);
-        glm::mat4 model = glm::mat4(1.0f);
-        lightCubeShader.setMat4("model", model);
-
-        glBindVertexArray(lineVAO);
-        glDrawArrays(GL_LINES, 0, 2);
+        // // also draw the lamp object
+        // lightCubeShader.use();
+        // lightCubeShader.setVec3("lightColor", lightColor);
+        // lightCubeShader.setMat4("projection", projection);
+        // lightCubeShader.setMat4("view", view);
+        // glm::mat4 model = glm::mat4(1.0f);
+        // model = glm::translate(model, lightPos);
+        // model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+        // lightCubeShader.setMat4("model", model);
+        // glBindVertexArray(lightCubeVAO);
+        // glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
