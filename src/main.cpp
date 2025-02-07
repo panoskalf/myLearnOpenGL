@@ -176,6 +176,24 @@ int main()
     glEnableVertexAttribArray(0);
 
 
+    struct PointLight {
+        glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);
+        float ambientStrength = 0.2f;   // low influence
+        float diffuseStrength = 0.5f;   // darken diffuse light a bit
+        float specularStrength = 1.0f;  // usually kept at full intensity
+        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+        // for the attenuation
+        float constant = 1.0f;
+        float linear = 0.09f;
+        float quadratic = 0.032f;
+    };
+
+    PointLight pointLights[] = {
+        PointLight{glm::vec3( 0.7f,  0.2f,  2.0f)},
+        PointLight{glm::vec3( 2.3f, -3.3f, -4.0f)},
+        PointLight{glm::vec3(-4.0f,  2.0f, -12.0f)},
+        PointLight{glm::vec3( 0.0f,  0.0f, -3.0f)}
+    };
 
     struct Spotlight {
         glm::vec3 position = glm::vec3(0.0f, 0.0f, 0.0f);   // will be taken from the camera
@@ -183,13 +201,13 @@ int main()
         float cutOff = 12.5f;
         float outerCutOff = 17.5f;
         float ambientStrength = 0.2f;   // low influence
-        float diffuseStrength = 0.5f;   // darken diffuse light a bit
+        float diffuseStrength = 1.0f;   // darken diffuse light a bit
         float specularStrength = 1.0f;  // usually kept at full intensity
+        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
         // for the attenuation
         float constant = 1.0f;
         float linear = 0.09f;
         float quadratic = 0.032f;
-        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
     };
 
     Spotlight spotlight;
@@ -216,17 +234,13 @@ int main()
     };
 
 
-    glm::vec3 pointLightPositions[] = {
-        glm::vec3( 0.7f,  0.2f,  2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3( 0.0f,  0.0f, -3.0f)
-    };
+
 
     float fpsUpdateTime = 0.0f;
     const float fpsInterval = 1.0f; // Update every 1 second
     float averagedFPS = 0.0f;
     int frameCount = 0;
+    int s = 0; // selector for point lights
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -270,6 +284,17 @@ int main()
         ImGui::SliderFloat("Spotlight Diffuse", &spotlight.diffuseStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Spotlight Specular", &spotlight.specularStrength, 0.0f, 1.0f);
         ImGui::SliderFloat("Enter the Matrix", &matrix, 0.0f, 1.0f);
+        // Group for point lights
+        ImGui::Separator(); // Optional: Add a separator between groups
+        ImGui::BeginGroup();
+        ImGui::SliderInt("Point Light", &s, 0, 3);
+        ImGui::SliderFloat3("Position", (float*)&pointLights[s].position, -10.0f, 10.0f);
+        ImGui::ColorEdit3("Color", (float*)&pointLights[s].color);
+        ImGui::SliderFloat("Ambient Strength", &pointLights[s].ambientStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Diffuse Strength", &pointLights[s].diffuseStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Specular Strength", &pointLights[s].specularStrength, 0.0f, 1.0f);
+        ImGui::EndGroup();
+
         ImGui::End();
 
         // input
@@ -301,38 +326,18 @@ int main()
         lightingShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
         lightingShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
         lightingShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-        // point light 1
-        lightingShader.setVec3("pointLights[0].position", pointLightPositions[0]);
-        lightingShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-        lightingShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-        lightingShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-        lightingShader.setFloat("pointLights[0].constant", 1.0f);
-        lightingShader.setFloat("pointLights[0].linear", 0.09f);
-        lightingShader.setFloat("pointLights[0].quadratic", 0.032f);
-        // point light 2
-        lightingShader.setVec3("pointLights[1].position", pointLightPositions[1]);
-        lightingShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-        lightingShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-        lightingShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-        lightingShader.setFloat("pointLights[1].constant", 1.0f);
-        lightingShader.setFloat("pointLights[1].linear", 0.09f);
-        lightingShader.setFloat("pointLights[1].quadratic", 0.032f);
-        // point light 3
-        lightingShader.setVec3("pointLights[2].position", pointLightPositions[2]);
-        lightingShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-        lightingShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-        lightingShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-        lightingShader.setFloat("pointLights[2].constant", 1.0f);
-        lightingShader.setFloat("pointLights[2].linear", 0.09f);
-        lightingShader.setFloat("pointLights[2].quadratic", 0.032f);
-        // point light 4
-        lightingShader.setVec3("pointLights[3].position", pointLightPositions[3]);
-        lightingShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-        lightingShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-        lightingShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-        lightingShader.setFloat("pointLights[3].constant", 1.0f);
-        lightingShader.setFloat("pointLights[3].linear", 0.09f);
-        lightingShader.setFloat("pointLights[3].quadratic", 0.032f);
+        // point lights
+        for(int i = 0; i < 4; i++)
+        {
+            std::string element = "pointLights[" + std::to_string(i) + "]";
+            lightingShader.setVec3(element + ".position",   pointLights[i].position);
+            lightingShader.setVec3(element + ".ambient",    pointLights[i].ambientStrength * pointLights[i].color);
+            lightingShader.setVec3(element + ".diffuse",    pointLights[i].diffuseStrength * pointLights[i].color);
+            lightingShader.setVec3(element + ".specular",   pointLights[i].specularStrength * pointLights[i].color);
+            lightingShader.setFloat(element + ".constant",  pointLights[i].constant);
+            lightingShader.setFloat(element + ".linear",    pointLights[i].linear);
+            lightingShader.setFloat(element + ".quadratic", pointLights[i].quadratic);
+        }
         // set spotlight properties
         lightingShader.setVec3("spotLight.ambient",     glm::vec3(spotlight.ambientStrength)  * spotlight.color);
         lightingShader.setVec3("spotLight.diffuse",     glm::vec3(spotlight.diffuseStrength)  * spotlight.color);
@@ -344,8 +349,6 @@ int main()
         lightingShader.setFloat("spotLight.constant",   spotlight.constant);
         lightingShader.setFloat("spotLight.linear",     spotlight.linear);
         lightingShader.setFloat("spotLight.quadratic",  spotlight.quadratic);
-
-        // set camera position
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.getZoom()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
@@ -387,9 +390,9 @@ int main()
         for (unsigned int i = 0; i < 4; i++)
         {
             glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, pointLightPositions[i]);
+            model = glm::translate(model, pointLights[i].position);
             model = glm::scale(model, glm::vec3(0.2f)); // Make it a smaller cube
-            lightCubeShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+            lightCubeShader.setVec3("lightColor", pointLights[i].color);
             lightCubeShader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
