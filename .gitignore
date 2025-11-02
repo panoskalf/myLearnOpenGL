@@ -1,1 +1,4 @@
 build
+assimp-build
+assimp-install
+*.ini
